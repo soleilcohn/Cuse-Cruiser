@@ -47,6 +47,7 @@ html, body {
     radial-gradient(circle at top, rgba(247,105,0,0.12) 0%, rgba(247,105,0,0.02) 28%, transparent 45%),
     linear-gradient(180deg, var(--navy-2) 0%, var(--navy-1) 100%);
   z-index: 20;
+  padding-bottom: 48px;
 }
 
 #game-screen {
@@ -330,25 +331,42 @@ canvas#gameCanvas {
   display: block;
 }
 
-/* Footer */
+/* ── FOOTER ── */
 .site-footer {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 12px;
-  text-align: center;
-  font-size: 12px;
-  letter-spacing: 1px;
-  color: rgba(255,255,255,0.72);
+  bottom: 0;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(6, 12, 28, 0.88);
+  border-top: 1px solid rgba(255,255,255,0.1);
   z-index: 25;
   pointer-events: none;
+}
+
+.site-footer p {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.439);
+  line-height: 1;
+}
+
+.site-footer .footer-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(255,255,255,0.25);
 }
 </style>
 </head>
 <body>
 
 <div id="select-screen">
-  <div class="sel-title">🍊 Cuse Cruiser 🍊</div>
+  <div class="sel-title">🍊 Otto Wheels 🍊</div>
   <div class="sel-sub">SYRACUSE EDITION · PICK YOUR OTTO</div>
 
   <div class="char-grid" id="char-grid"></div>
@@ -388,34 +406,36 @@ canvas#gameCanvas {
 <button id="back-btn">← Characters</button>
 <canvas id="gameCanvas"></canvas>
 
-<div class="site-footer" id="footer-select">@ 2026 ESMC</div>
+<footer>
+  <div class="site-footer" id="footer-select">
+    <p>Syracuse University</p>
+    <p>© 2026 ESMC</p>
+  </div>
+</footer>
 
 <script>
 const CHARS = [
-  { id: 0, name: 'OTTO', img: 'img/o1.png', emoji: '🛴' },
+  { id: 0, name: 'OTTO',       img: 'img/o1.png', emoji: '🛴' },
   { id: 1, name: 'OTTOS ARMY', img: 'img/o2.png', emoji: '🔥' },
-  { id: 2, name: 'COLIN', img: 'img/o3.png', emoji: '😎' },
+  { id: 2, name: 'COLIN',      img: 'img/o3.png', emoji: '😎' },
 ];
 
 let selectedChar = -1;
 let speedSetting = 'normal';
-let barsSetting = 'static';
+let barsSetting  = 'static';
 
-const SPEED_PRESETS = {
-  slow:   [1.25, 1.65, 2.05, 2.5, 3.0, 3.55],
-  normal: [2.0, 2.6, 3.25, 4.0, 4.8, 5.7],
-  fast:   [3.0, 3.8, 4.7, 5.7, 6.8, 8.0]
+// All three modes are fixed speeds — no ramp-up ever.
+const SPEED_CONFIG = {
+  slow:   1.5,
+  normal: 2.6,
+  fast:   5.0
 };
 
 const speedSelect = document.getElementById('speed-select');
-speedSelect.addEventListener('change', () => {
-  speedSetting = speedSelect.value;
-});
+speedSelect.addEventListener('change', () => { speedSetting = speedSelect.value; });
 
 const barsSelect = document.getElementById('bars-select');
-barsSelect.addEventListener('change', () => {
-  barsSetting = barsSelect.value;
-});
+barsSelect.addEventListener('change', () => { barsSetting = barsSelect.value; });
 
 const grid = document.getElementById('char-grid');
 CHARS.forEach(c => {
@@ -428,13 +448,10 @@ CHARS.forEach(c => {
 
   const imgEl = document.createElement('img');
   imgEl.alt = c.name;
-
   if (c.img) {
     imgEl.src = c.img;
-    imgEl.onload = () => imgEl.classList.add('loaded');
-    imgEl.onerror = () => {
-      console.error('Failed to load image:', c.img);
-    };
+    imgEl.onload  = () => imgEl.classList.add('loaded');
+    imgEl.onerror = () => {};
   }
 
   const ph = document.createElement('span');
@@ -466,22 +483,21 @@ const charImages = CHARS.map(c => {
   if (!c.img) return null;
   const img = new Image();
   img.src = c.img;
-  img.onerror = () => {
-    console.error('Failed to preload image:', c.img);
-  };
+  img.onerror = () => {};
   return img;
 });
 
 document.getElementById('play-btn').addEventListener('click', () => {
   if (selectedChar < 0) return;
-
+  // Read settings directly from selects at play time
+  speedSetting = document.getElementById('speed-select').value;
+  barsSetting  = document.getElementById('bars-select').value;
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('hud').classList.add('visible');
   document.getElementById('back-btn').classList.add('visible');
   document.getElementById('hud-player').textContent = '🍊 ' + CHARS[selectedChar].name;
   document.getElementById('hud-speed-mode').textContent = speedSetting.toUpperCase();
   document.getElementById('footer-select').style.display = 'none';
-
   activeCharImg = charImages[selectedChar];
   startGame();
 });
@@ -491,7 +507,7 @@ document.getElementById('back-btn').addEventListener('click', () => {
   document.getElementById('hud').classList.remove('visible');
   document.getElementById('back-btn').classList.remove('visible');
   document.getElementById('select-screen').style.display = 'flex';
-  document.getElementById('footer-select').style.display = 'block';
+  document.getElementById('footer-select').style.display = 'flex';
   gameRunning = false;
 });
 
@@ -514,41 +530,29 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 function resize() {
-  canvas.width = window.innerWidth;
+  canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
 }
 resize();
-
-window.addEventListener('resize', () => {
-  resize();
-  if (!gameRunning) drawSelectBg();
-});
+window.addEventListener('resize', () => { resize(); });
 
 const OG = '#f76900';
 let activeCharImg = null;
 let bird, pipes, score, gameOver, started, animFrame, gameRunning;
-let speedLevel, frameCount, pipeGap, pipeW;
-let currentSpeedLevels = SPEED_PRESETS.normal;
-
-const SCORE_THRESHOLDS = [0, 5, 12, 22, 35, 52];
-
-const RIDER_W = 82;
-const RIDER_H = 82;
-const RIDER_X = -RIDER_W / 2 + 2;
-const RIDER_Y = -58;
+let speedLevel, frameCount, pipeGap, pipeW, firstPipeSpawned;
 
 function startGame() {
-  currentSpeedLevels = SPEED_PRESETS[speedSetting];
   gameRunning = true;
   bird = { x: canvas.width * 0.18, y: canvas.height / 2, vy: 0, gravity: 0.48 };
-  pipes = [];
-  score = 0;
-  gameOver = false;
-  started = false;
+  pipes      = [];
+  score      = 0;
+  gameOver   = false;
+  started    = false;
   frameCount = 0;
   speedLevel = 1;
+  firstPipeSpawned = false;
   pipeGap = Math.min(canvas.height * 0.46, 270);
-  pipeW = Math.min(canvas.width * 0.07, 64);
+  pipeW   = Math.min(canvas.width  * 0.07,  64);
   cancelAnimationFrame(animFrame);
   updatePips(speedLevel);
   document.getElementById('hud-score').textContent = '0';
@@ -556,7 +560,7 @@ function startGame() {
 }
 
 function currentSpeed() {
-  return currentSpeedLevels[Math.min(speedLevel - 1, currentSpeedLevels.length - 1)];
+  return SPEED_CONFIG[speedSetting];
 }
 
 function getPipeTop(pipe) {
@@ -595,13 +599,10 @@ function drawSky() {
 function drawGround() {
   const W = canvas.width, H = canvas.height;
   const gH = H * 0.12;
-
   ctx.fillStyle = '#1d2430';
   ctx.fillRect(0, H - gH, W, gH);
-
   ctx.fillStyle = '#2c3544';
   ctx.fillRect(0, H - gH, W, gH * 0.2);
-
   ctx.strokeStyle = OG;
   ctx.lineWidth = 2;
   ctx.setLineDash([30, 18]);
@@ -620,7 +621,6 @@ function drawPipes() {
     ctx.fillStyle = OG;
     ctx.strokeStyle = '#b84f00';
     ctx.lineWidth = 2;
-
     ctx.fillRect(p.x, 0, pipeW, topY);
     ctx.strokeRect(p.x, 0, pipeW, topY);
 
@@ -628,7 +628,6 @@ function drawPipes() {
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(p.x - 5, topY - capH, pipeW + 10, capH);
     ctx.strokeRect(p.x - 5, topY - capH, pipeW + 10, capH);
-
     ctx.fillStyle = OG;
     ctx.fillRect(p.x - 5, topY - capH, pipeW + 10, capH * 0.3);
 
@@ -637,17 +636,17 @@ function drawPipes() {
     ctx.strokeStyle = '#b84f00';
     ctx.fillRect(p.x, b, pipeW, H - b);
     ctx.strokeRect(p.x, b, pipeW, H - b);
-
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(p.x - 5, b, pipeW + 10, capH);
     ctx.strokeRect(p.x - 5, b, pipeW + 10, capH);
-
     ctx.fillStyle = OG;
     ctx.fillRect(p.x - 5, b + capH * 0.7, pipeW + 10, capH * 0.3);
   });
 }
 
 function drawRiderImage(img) {
+  const RIDER_W = 82, RIDER_H = 82;
+  const RIDER_X = -RIDER_W / 2 + 2, RIDER_Y = -58;
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(RIDER_X, RIDER_Y, RIDER_W, RIDER_H, 10);
@@ -678,128 +677,46 @@ function drawScooter() {
     ctx.fill();
   });
 
-  ctx.beginPath();
-  ctx.arc(-28,20,15,0,Math.PI * 2);
-  ctx.fillStyle = '#161616';
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(-28,20,15,0,Math.PI*2); ctx.fillStyle='#161616'; ctx.fill();
+  ctx.beginPath(); ctx.arc(-28,20,9,0,Math.PI*2);  ctx.fillStyle='#444';    ctx.fill();
+  ctx.beginPath(); ctx.arc(-28,20,3,0,Math.PI*2);  ctx.fillStyle='#888';    ctx.fill();
 
-  ctx.beginPath();
-  ctx.arc(-28,20,9,0,Math.PI * 2);
-  ctx.fillStyle = '#444';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(-28,20,3,0,Math.PI * 2);
-  ctx.fillStyle = '#888';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(30,20,15,0,Math.PI * 2);
-  ctx.fillStyle = '#161616';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(30,20,9,0,Math.PI * 2);
-  ctx.fillStyle = '#444';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(30,20,3,0,Math.PI * 2);
-  ctx.fillStyle = '#888';
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(30,20,15,0,Math.PI*2); ctx.fillStyle='#161616'; ctx.fill();
+  ctx.beginPath(); ctx.arc(30,20,9,0,Math.PI*2);  ctx.fillStyle='#444';    ctx.fill();
+  ctx.beginPath(); ctx.arc(30,20,3,0,Math.PI*2);  ctx.fillStyle='#888';    ctx.fill();
 
   ctx.fillStyle = OG;
   ctx.beginPath();
-  ctx.moveTo(-32,13);
-  ctx.lineTo(34,13);
-  ctx.lineTo(28,22);
-  ctx.lineTo(-28,22);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(-32,13); ctx.lineTo(34,13); ctx.lineTo(28,22); ctx.lineTo(-28,22);
+  ctx.closePath(); ctx.fill();
 
-  ctx.strokeStyle = '#d8dee7';
-  ctx.lineWidth = 3.5;
-  ctx.lineCap = 'round';
-
-  ctx.beginPath();
-  ctx.moveTo(22,12);
-  ctx.lineTo(24,-12);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(15,-12);
-  ctx.lineTo(33,-12);
-  ctx.stroke();
+  ctx.strokeStyle = '#d8dee7'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(22,12); ctx.lineTo(24,-12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(15,-12); ctx.lineTo(33,-12); ctx.stroke();
 
   if (activeCharImg && activeCharImg.complete && activeCharImg.naturalWidth > 0) {
     drawRiderImage(activeCharImg);
   } else {
-    ctx.strokeStyle = '#1a1a2e';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(2,-4);
-    ctx.lineTo(-9,16);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(6,-4);
-    ctx.lineTo(13,16);
-    ctx.stroke();
-
+    ctx.strokeStyle = '#1a1a2e'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(2,-4); ctx.lineTo(-9,16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6,-4); ctx.lineTo(13,16); ctx.stroke();
     ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.ellipse(-11,18,7,3.5,0,0,Math.PI * 2);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.ellipse(15,18,7,3.5,0,0,Math.PI * 2);
-    ctx.fill();
-
+    ctx.beginPath(); ctx.ellipse(-11,18,7,3.5,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(15,18,7,3.5,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle = OG;
-    ctx.beginPath();
-    ctx.ellipse(4,-16,13,16,-0.1,0,Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = '#b85200';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    ctx.strokeStyle = OG;
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(11,-18);
-    ctx.lineTo(26,-12);
-    ctx.stroke();
-
-    const hR = 21, hX = 3, hY = -36;
-    ctx.beginPath();
-    ctx.arc(hX, hY, hR, 0, Math.PI * 2);
-    ctx.fillStyle = '#fde68a';
-    ctx.fill();
-
-    ctx.strokeStyle = '#d97706';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(hX, hY, hR, Math.PI * 1.05, Math.PI * 1.95);
-    ctx.fillStyle = OG;
-    ctx.fill();
-
-    ctx.fillStyle = '#1e293b';
-    ctx.beginPath();
-    ctx.arc(hX - 6, hY + 3, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(hX + 6, hY + 3, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(hX, hY + 5, 6, 0.1 * Math.PI, 0.9 * Math.PI);
-    ctx.strokeStyle = '#92400e';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(4,-16,13,16,-0.1,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#b85200'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = OG; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(11,-18); ctx.lineTo(26,-12); ctx.stroke();
+    const hR=21, hX=3, hY=-36;
+    ctx.beginPath(); ctx.arc(hX,hY,hR,0,Math.PI*2); ctx.fillStyle='#fde68a'; ctx.fill();
+    ctx.strokeStyle='#d97706'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(hX,hY,hR,Math.PI*1.05,Math.PI*1.95); ctx.fillStyle=OG; ctx.fill();
+    ctx.fillStyle='#1e293b';
+    ctx.beginPath(); ctx.arc(hX-6,hY+3,2.5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hX+6,hY+3,2.5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hX,hY+5,6,0.1*Math.PI,0.9*Math.PI);
+    ctx.strokeStyle='#92400e'; ctx.lineWidth=1.5; ctx.stroke();
   }
 
   ctx.restore();
@@ -825,15 +742,12 @@ function drawOverlay(line1, line2, line3) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const cx = canvas.width / 2;
   ctx.textAlign = 'center';
-
   ctx.fillStyle = OG;
   ctx.font = `900 ${Math.round(canvas.width * 0.055)}px Arial`;
   ctx.fillText(line1, cx, canvas.height * 0.44);
-
   ctx.fillStyle = '#fff';
   ctx.font = `bold ${Math.round(canvas.width * 0.032)}px Arial`;
   ctx.fillText(line2, cx, canvas.height * 0.52);
-
   ctx.fillStyle = '#c6d0dc';
   ctx.font = `${Math.round(canvas.width * 0.022)}px Arial`;
   ctx.fillText(line3, cx, canvas.height * 0.59);
@@ -848,6 +762,19 @@ function checkCol(p) {
     bird.x - hw <= p.x + pipeW + 5 &&
     (bird.y - hh <= topY || bird.y + hh >= topY + pipeGap)
   );
+}
+
+function spawnPipe() {
+  const H = canvas.height, groundH = H * 0.12;
+  const minTop = H * 0.14;
+  const maxTop = H - pipeGap - groundH - H * 0.04;
+  pipes.push({
+    x: canvas.width,
+    top: minTop + Math.random() * (maxTop - minTop),
+    passed: false,
+    phase: Math.random() * Math.PI * 2,
+    moveAmp: barsSetting === 'moving' ? Math.min(H * 0.05, 28) : 0
+  });
 }
 
 function gameDraw() {
@@ -876,22 +803,14 @@ function gameDraw() {
   }
 
   bird.vy += bird.gravity;
-  bird.y += bird.vy;
+  bird.y  += bird.vy;
   frameCount++;
 
-  const spawnDist = Math.max(W * 0.38, 260);
+  // First pipe spawns close; subsequent pipes at normal spacing
+  const spawnDist = !firstPipeSpawned ? Math.max(W * 0.20, 150) : Math.max(W * 0.38, 260);
   if (!pipes.length || pipes[pipes.length - 1].x <= W - spawnDist) {
-    const minTop = H * 0.14;
-    const maxTop = H - pipeGap - groundH - H * 0.04;
-    const midTop = minTop + Math.random() * (maxTop - minTop);
-
-    pipes.push({
-      x: W,
-      top: midTop,
-      passed: false,
-      phase: Math.random() * Math.PI * 2,
-      moveAmp: barsSetting === 'moving' ? Math.min(H * 0.05, 28) : 0
-    });
+    spawnPipe();
+    firstPipeSpawned = true;
   }
 
   const spd = currentSpeed();
@@ -902,19 +821,9 @@ function gameDraw() {
       score++;
       pipes[i].passed = true;
       document.getElementById('hud-score').textContent = score;
-
-      const newLevel = SCORE_THRESHOLDS.findLastIndex(t => score >= t) + 1;
-      if (newLevel > speedLevel) {
-        speedLevel = Math.min(newLevel, MAX_LEVEL);
-        levelUpTimer = 80;
-        updatePips(speedLevel);
-      }
     }
 
-    if (checkCol(pipes[i])) {
-      gameOver = true;
-    }
-
+    if (checkCol(pipes[i])) gameOver = true;
     if (pipes[i].x + pipeW < 0) pipes.splice(i, 1);
   }
 
@@ -926,19 +835,20 @@ function flap() {
   if (!gameRunning) return;
 
   if (gameOver) {
-    currentSpeedLevels = SPEED_PRESETS[speedSetting];
-    document.getElementById('hud-speed-mode').textContent = speedSetting.toUpperCase();
-
+    speedSetting = document.getElementById('speed-select').value;
+    barsSetting  = document.getElementById('bars-select').value;
     bird = { x: canvas.width * 0.18, y: canvas.height / 2, vy: 0, gravity: 0.48 };
-    pipes = [];
-    score = 0;
-    gameOver = false;
-    started = true;
+    pipes      = [];
+    score      = 0;
+    gameOver   = false;
+    started    = true;
     frameCount = 0;
     speedLevel = 1;
     levelUpTimer = 0;
+    firstPipeSpawned = false;
     pipeGap = Math.min(canvas.height * 0.46, 270);
     document.getElementById('hud-score').textContent = '0';
+    document.getElementById('hud-speed-mode').textContent = speedSetting.toUpperCase();
     updatePips(1);
     return;
   }
@@ -948,21 +858,12 @@ function flap() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'Space') {
-    e.preventDefault();
-    flap();
-  }
+  if (e.code === 'Space') { e.preventDefault(); flap(); }
 });
-
 canvas.addEventListener('click', flap);
-canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  flap();
-}, { passive: false });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); flap(); }, { passive: false });
 
-function drawSelectBg() {
-  resize();
-}
+function drawSelectBg() { resize(); }
 </script>
 </body>
 </html>
